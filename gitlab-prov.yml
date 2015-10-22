@@ -1,0 +1,38 @@
+---
+- hosts: all
+  sudo: yes
+  tasks:
+    ## GitLab setup ##
+
+    - name: Install package
+      apt: name={{ item }} state=installed
+      with_items:
+        - curl
+        - openssh-server
+        - ca-certificates
+        - postfix
+
+    - name: Download GitLab package server script
+      shell: curl -s https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh > /tmp/script.deb.sh
+
+    - name: Add the GitLab package server
+      command: bash /tmp/script.deb.sh
+
+    - name: Setup GitLab server
+      apt: name=gitlab-ce=7.13.5-ce.0 state=installed
+
+    ## GitLab Localization
+
+    - name: Download the patch file for ja Localize
+      shell: curl -s https://raw.githubusercontent.com/ksoichiro/gitlab-i18n-patch/master/patches/v7.13.5/app_ja.patch > /tmp/app_ja.patch
+
+    - name: Apply to
+      shell: patch -p1 < /tmp/app_ja.patch
+      args:
+        chdir: /opt/gitlab/embedded/service/gitlab-rails
+
+    ## Start GitLab Server
+
+    - name: Start gitlab server
+      command: gitlab-ctl reconfigure
+      tags: start
